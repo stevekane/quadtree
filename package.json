@@ -1,0 +1,29 @@
+{
+  "name": "quad-tree",
+  "version": "1.0.0",
+  "description": "Efficient versions of quad-trees",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stevekane/quadtree.git"
+  },
+  "keywords": [
+    "quad",
+    "tree",
+    "opengl",
+    "webgl",
+    "regl"
+  ],
+  "author": "Steve Kane",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/stevekane/quadtree/issues"
+  },
+  "homepage": "https://github.com/stevekane/quadtree#readme",
+  "devDependencies": {
+    "tape": "^4.6.3"
+  }
+}
