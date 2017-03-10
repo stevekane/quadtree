@@ -2,6 +2,8 @@ type V2<T> = [ T, T ]
 type V4<T> = [ T, T, T, T ]
 type Index = 0 | 1 | 2 | 3
 
+const { sqrt, pow } = Math
+
 interface ILeaf<T> { 
   leaf: true
   position: V2<number>
@@ -31,10 +33,10 @@ const Leaf = <T>( position: V2<number> ): ILeaf<T> => ({
   position
 })
 
-function index<T> ( q: IQuad<T>, l: ILeaf<T> ): Index {
-  return l.position[0] < q.position[0]
-    ? l.position[1] < q.position[1] ? 3 : 0
-    : l.position[1] < q.position[1] ? 2 : 1
+function index<T> ( q: IQuad<T>, p: V2<number> ): Index {
+  return p[0] < q.position[0]
+    ? p[1] < q.position[1] ? 3 : 0
+    : p[1] < q.position[1] ? 2 : 1
 }
 
 function positionForIndex<T> ( q: IQuad<T>, i: Index ): V2<number> {
@@ -47,7 +49,7 @@ function positionForIndex<T> ( q: IQuad<T>, i: Index ): V2<number> {
 }
 
 function insert<T> ( q: IQuad<T>, l: ILeaf<T> ) {
-  var i = index(q, l)
+  var i = index(q, l.position)
   var c = q.children[i]
 
   if ( c === null ) {
@@ -67,17 +69,51 @@ function insert<T> ( q: IQuad<T>, l: ILeaf<T> ) {
   }
 }
 
+function search<T> ( q: IQuad<T>, p: V2<number> ): ILeaf<T> | null {
+  var i = index(q, p)
+  var r = q.children[i]
+  var [ x, y ] = q.dimension
+  var d = sqrt(x * x + y * y)
+
+  if      ( r == null ) return r
+  else if ( r.leaf )    return r
+  else                  return search(r, p)
+}
+
+const MAX_NODES = pow(2, 15)
 const r = Quad([ 0, 0 ], [ 2, 2 ])
-const l0 = Leaf([ -1, 1 ])
-const l1 = Leaf([ 1, 1 ])
-const l2 = Leaf([ 1, -1 ])
-const l3 = Leaf([ -1, -1 ])
-const l4 = Leaf([ -2, -2 ])
+const target: V2<number> = [ 0.5, 0.5 ]
+const nodes = []
 
-insert(r, l0)
-insert(r, l1)
-insert(r, l2)
-insert(r, l3)
-insert(r, l4)
+for ( var i = 0, n; i < MAX_NODES; i++ ) {
+  n = Leaf([ Math.random() - .5, Math.random() - .5 ])
+  nodes.push(n)
+  insert(r, n)
+}
 
-console.log(r)
+const start_search_array = Date.now()
+
+var closest = null
+for ( var i = 0, dx, dy, d, old_d = 1000; i < nodes.length; i++ ) {
+  dx = nodes[i].position[0] - target[0]
+  dy = nodes[i].position[1] - target[1]
+  d  = sqrt(dx * dx + dy * dy)
+
+  if ( old_d > d ) {
+    closest = nodes[i]
+    old_d = d
+  }
+}
+const end_search_array = Date.now()
+const dt_array = end_search_array - start_search_array
+const found_array = JSON.stringify(closest)
+
+console.log(`SEARCHING ARRAY[${ MAX_NODES }]: ${ dt_array }ms.  FOUND ${ found_array }`)
+
+const start_search_qt = Date.now()
+closest = search(r, target)
+const end_search_qt = Date.now()
+const dt_qt = end_search_qt - start_search_qt
+const found_qt = JSON.stringify(closest)
+
+console.log(`SEARCHING QT[${ MAX_NODES }]: ${ dt_qt }ms.  FOUND ${ found_qt }`)
