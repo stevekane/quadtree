@@ -1,10 +1,12 @@
 type V2<T> = [ T, T ]
 type V4<T> = [ T, T, T, T ]
 type Index = 0 | 1 | 2 | 3
+type DistanceFn = ( v0: V2<number>, v1: V2<number> ) => number
 
-const { sqrt, pow } = Math
+const { sqrt, pow, abs, min, max } = Math
 
 interface ILeaf<T> { 
+  id: number
   leaf: true
   position: V2<number>
 }
@@ -28,8 +30,9 @@ const Quad = <T>( position: V2<number>, dimension: V2<number> ): IQuad<T> => ({
   children: [ null, null, null, null ]
 })
 
-const Leaf = <T>( position: V2<number> ): ILeaf<T> => ({
+const Leaf = <T>( id: number, position: V2<number> ): ILeaf<T> => ({
   leaf: true,
+  id,
   position
 })
 
@@ -40,11 +43,17 @@ function index<T> ( q: IQuad<T>, p: V2<number> ): Index {
 }
 
 function positionForIndex<T> ( q: IQuad<T>, i: Index ): V2<number> {
+  // TODO: use these for clarity?
+  var [ x, y ] = q.position
+  var [ w, h ] = q.dimension
+  var halfW = w / 2
+  var halfH = h / 2
+
   switch ( i ) {
     case 0: return [ q.position[0] - q.dimension[0] / 2, q.position[1] + q.dimension[1] / 2 ]
     case 1: return [ q.position[0] + q.dimension[0] / 2, q.position[1] + q.dimension[1] / 2 ]
     case 2: return [ q.position[0] + q.dimension[0] / 2, q.position[1] - q.dimension[1] / 2 ]
-    case 3: return [ q.position[0] - q.dimension[0] / 2, q.position[1] + q.dimension[1] / 2 ]
+    case 3: return [ q.position[0] - q.dimension[0] / 2, q.position[1] - q.dimension[1] / 2 ]
   }
 }
 
@@ -69,51 +78,117 @@ function insert<T> ( q: IQuad<T>, l: ILeaf<T> ) {
   }
 }
 
-function search<T> ( q: IQuad<T>, p: V2<number> ): ILeaf<T> | null {
-  var i = index(q, p)
-  var r = q.children[i]
-  var [ x, y ] = q.dimension
-  var d = sqrt(x * x + y * y)
-
-  if      ( r == null ) return r
-  else if ( r.leaf )    return r
-  else                  return search(r, p)
+function sortProximity ( [ x, y ]: V2<number> ) {
+  return function <T>( q1: QT<T>, q2: QT<T> ): number {
+    if ( q1 == null ) return 1
+    if ( q1.leaf )    return 1
+    if ( q2 == null ) return -1
+    if ( q2.leaf )    return -1
+   
+    var [ q1x, q1y ] = q1.position
+    var [ q2x, q2y ] = q2.position
+    var d1 = abs(q1x - x) + abs(q1y - y)
+    var d2 = abs(q2x - x) + abs(q2y - y)
+    
+    return d1 > d2 ? 1 : -1
+  }
 }
 
-const MAX_NODES = pow(2, 15)
-const r = Quad([ 0, 0 ], [ 2, 2 ])
+function manhattan ( p0: V2<number>, p1: V2<number> ): number {
+  return abs(p1[0] - p0[0]) + abs(p1[1] - p0[1])
+}
+
+function L2 ( p0: V2<number>, p1: V2<number> ): number {
+  var dx = p1[0] - p0[0]
+  var dy = p1[1] - p0[1]
+
+  return sqrt(pow(dx, 2) + pow(dy, 2))
+}
+
+function nearestArray <T> ( nodes: ILeaf<T>[], dfn: DistanceFn, p: V2<number> ): null | ILeaf<T> {
+  var found = null
+
+  for ( var i = 0, d; i < nodes.length; i++ ) {
+    d = dfn(nodes[i].position, p)
+    found = found == null || d < dfn(found.position, p) ? nodes[i] : found
+  }
+  return found
+}
+
+function nearest <T> ( q: QT<T>, dfn: DistanceFn, r: number, p: V2<number> ): ILeaf<T> | null {
+  function search ( w: ILeaf<T> | null, c: QT<T> ): ILeaf<T> | null {
+    const n = nearest(c, dfn, r, p) 
+
+    if ( w == null ) return n
+    if ( n == null ) return w
+
+    return dfn(n.position, p) < dfn(w.position, p) ? n : w
+  }
+
+  if      ( q == null ) return null
+  else if ( q.leaf )    return dfn(q.position, p) < r ? q : null
+  else                  return q.children.reduce(search, null as null | ILeaf<T>) as null | ILeaf<T>
+}
+
+const MAX_NODES = pow(2, 3)
+const r = Quad([ 0, 0 ], [ 1, 1 ])
 const target: V2<number> = [ 0.5, 0.5 ]
 const nodes = []
 
 for ( var i = 0, n; i < MAX_NODES; i++ ) {
-  n = Leaf([ Math.random() - .5, Math.random() - .5 ])
+  n = Leaf(i, [ Math.random() * 2 - 1, Math.random() * 2 - 1 ])
   nodes.push(n)
   insert(r, n)
 }
 
-const start_search_array = Date.now()
+// const start_search_array = Date.now()
+// 
+// 
+// const end_search_array = Date.now()
+// const closest_array = nearestArray(nodes, manhattan, target)
+// const dt_array = end_search_array - start_search_array
+// const found_array = JSON.stringify(closest_array)
+// 
+// console.log(`SEARCHING ARRAY[${ MAX_NODES }]: ${ dt_array }ms.  FOUND ${ found_array }`)
+// 
+// const start_search_qt = Date.now()
+// const closest_qt = nearest(r, manhattan, target)
+// const end_search_qt = Date.now()
+// const dt_qt = end_search_qt - start_search_qt
+// const found_qt = JSON.stringify(closest_qt)
+// 
+// console.log(`SEARCHING QT[${ MAX_NODES }]: ${ dt_qt }ms.  FOUND ${ found_qt }`)
+// 
+// console.log(`FOUND SAME: ${ closest_array === closest_qt }`)
 
-var closest = null
-for ( var i = 0, dx, dy, d, old_d = 1000; i < nodes.length; i++ ) {
-  dx = nodes[i].position[0] - target[0]
-  dy = nodes[i].position[1] - target[1]
-  d  = sqrt(dx * dx + dy * dy)
+var problemLeaves: ILeaf<any>[] = [ 
+  { id: 1, leaf: true, position: [ 0.20959098742382576, -0.6049647185031937 ] },
+  { id: 2, leaf: true, position: [ -0.15272271894029465, -0.4099223518846471 ] },
+  { id: 3, leaf: true, position: [ -0.20917872072493626, -0.8297414166119115 ] },
+  { id: 4, leaf: true, position: [ -0.046198461922013934, -0.687954309298973 ] },
+  { id: 5, leaf: true, position: [ 0.5686020477613236, -0.8017516705096708 ] },
+  { id: 6, leaf: true, position: [ -0.6986326028896657, 0.6377256037676262 ] },
+  { id: 7, leaf: true, position: [ -0.6763076967429464, -0.18301920072377742 ] },
+  { id: 8, leaf: true, position: [ -0.4952690427277786, -0.9748926589056364 ] }
+]
 
-  if ( old_d > d ) {
-    closest = nodes[i]
-    old_d = d
-  }
+const rp = Quad([ 0, 0 ], [ 1, 1 ])
+
+for ( var i = 0; i < problemLeaves.length; i++ ) {
+  insert(rp, problemLeaves[i])
 }
-const end_search_array = Date.now()
-const dt_array = end_search_array - start_search_array
-const found_array = JSON.stringify(closest)
 
-console.log(`SEARCHING ARRAY[${ MAX_NODES }]: ${ dt_array }ms.  FOUND ${ found_array }`)
+// const pmarray = nearestArray(problemLeaves, manhattan, target)
+// const pmqt = nearest(rp, manhattan, target)
+// console.log(problemLeaves.map(l => l.position))
+// if ( pmarray != null && pmqt != null ) {
+//   console.log(pmarray, manhattan(pmarray.position, target))
+//   console.log(pmqt, manhattan(pmqt.position, target))
+// }
 
-const start_search_qt = Date.now()
-closest = search(r, target)
-const end_search_qt = Date.now()
-const dt_qt = end_search_qt - start_search_qt
-const found_qt = JSON.stringify(closest)
-
-console.log(`SEARCHING QT[${ MAX_NODES }]: ${ dt_qt }ms.  FOUND ${ found_qt }`)
+const pdarray = nearestArray(problemLeaves, L2, target)
+const pdqt = nearest(rp, L2, Infinity, target)
+if ( pdarray != null && pdqt != null ) {
+  console.log(pdarray, L2(pdarray.position, target))
+  console.log(pdqt, L2(pdqt.position, target))
+}
