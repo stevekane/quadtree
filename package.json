@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/stevekane/quadtree#readme",
   "devDependencies": {
+    "seed-random": "^2.2.0",
     "tape": "^4.6.3"
   }
 }
