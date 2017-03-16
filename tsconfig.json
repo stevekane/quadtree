@@ -3,6 +3,7 @@
     "target": "es5",
     "strictNullChecks": true,
     "noImplicitAny": true,
-    "noImplicitThis": true
+    "noImplicitThis": true,
+    "types": [ "node" ]
   }
 }

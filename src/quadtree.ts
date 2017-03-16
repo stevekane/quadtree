@@ -65,16 +65,12 @@ function nearestArray <T> ( nodes: ILeaf<T>[], dfn: DistanceFn, r: number, p: V2
 }
 
 function minDistToQuad <T> ( q: IQuad<T>, [ x, y ]: V2 ): number {
+  var dx = x - q.position[0]
+  var dy = y - q.position[1]
   var halfW = q.dimension[0] / 2
   var halfH = q.dimension[1] / 2
-  var cx = q.position[0]
-  var cy = q.position[1]
-  var d1x = abs(x - cx + halfW)
-  var d2x = abs(x - cx - halfW)
-  var d1y = abs(y - cy + halfH)
-  var d2y = abs(y - cy - halfH)
 
-  return min(d1x, d2x, d1y, d2y)
+  return min(abs(dx + halfW), abs(dx - halfW), abs(dy + halfH), abs(dy - halfH))
 }
 
 function nearest <T> ( q: QT<T>, dfn: DistanceFn, r: number, p: V2 ): ILeaf<T> | null {
@@ -125,6 +121,7 @@ for ( var i = 0, n; i < MAX_NODES; i++ ) {
 
 const pdarray = nearestArray(nodes, euclidean, Infinity, target)
 const pdqt = nearest(r, euclidean, Infinity, target)
+
 if ( pdarray != null && pdqt != null ) {
   console.log(pdarray, euclidean(pdarray.position, target))
   console.log(pdqt, euclidean(pdqt.position, target))
