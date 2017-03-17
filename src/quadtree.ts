@@ -1,27 +1,32 @@
+enum Kind { Empty, Leaf, Quad }
+
 type V2 = [ number, number ]
 type V4<T> = [ T, T, T, T ]
 type Index = 0 | 1 | 2 | 3
 type DistanceFn = ( v0: V2, v1: V2 ) => number
-type ILeaf<T> = { id: number, leaf: true, position: V2 }
-type IQuad<T> = { leaf: false, position: V2, dimension: V2, children: V4<QT<T> | null> }
-type QT<T> = ILeaf<T> | IQuad<T>
+type IEmpty = { kind: Kind.Empty }
+type ILeaf = { kind: Kind.Leaf, position: V2 }
+type IQuad = { kind: Kind.Quad, position: V2, dimension: V2, children: V4<QT> }
+type QT = IEmpty | ILeaf | IQuad
 
 const { sqrt, pow, abs, min } = Math
 const manhattan = ( [ x0, y0 ]: V2, [ x1, y1 ]: V2 ) => abs(x1 - x0) + abs(y1 - y0)
 const euclidean = ( [ x0, y0 ]: V2, [ x1, y1 ]: V2 ) => sqrt(pow(x1 - x0, 2) + pow(y1 - y0, 2))
 
-const Quad = <T> ( position: V2, dimension: V2 ): IQuad<T> =>
-  ({ leaf: false, position, dimension, children: [ null, null, null, null ] })
-const Leaf = <T> ( id: number, position: V2 ): ILeaf<T> =>
-  ({ leaf: true, id, position })
+const Empty = (): IEmpty =>
+  ({ kind: Kind.Empty })
+const Leaf = ( position: V2 ): ILeaf =>
+  ({ kind: Kind.Leaf, position })
+const Quad = ( position: V2, dimension: V2 ): IQuad =>
+  ({ kind: Kind.Quad, position, dimension, children: [ Empty(), Empty(), Empty(), Empty() ] })
 
-function index<T> ( q: IQuad<T>, [ x, y ]: V2 ): Index {
+function index ( q: IQuad, [ x, y ]: V2 ): Index {
   return x < q.position[0]
     ? y < q.position[1] ? 3 : 0
     : y < q.position[1] ? 2 : 1
 }
 
-function positionForIndex<T> ( q: IQuad<T>, i: Index ): V2 {
+function positionForIndex ( q: IQuad, i: Index ): V2 {
   var [ x, y ] = q.position
   var [ w, h ] = q.dimension
 
@@ -33,28 +38,27 @@ function positionForIndex<T> ( q: IQuad<T>, i: Index ): V2 {
   }
 }
 
-function insert<T> ( q: IQuad<T>, l: ILeaf<T> ) {
+function insert ( q: IQuad, l: ILeaf ) {
   var i = index(q, l.position)
   var c = q.children[i]
 
-  if ( c === null ) {
-    q.children[i] = l
-  }
-  else if ( !c.leaf ) {
-    insert(c, l)
-  }
-  else {
-    var position = positionForIndex(q, i) 
-    var dimension: V2 = [ q.dimension[0] / 2, q.dimension[1] / 2 ]
-    var node = Quad(position, dimension)
+  switch ( c.kind ) {
+    case Kind.Empty: 
+      q.children[i] = l; break
+    case Kind.Quad:  
+      insert(c, l); break
+    case Kind.Leaf:
+      var position = positionForIndex(q, i) 
+      var dimension: V2 = [ q.dimension[0] / 2, q.dimension[1] / 2 ]
+      var node = Quad(position, dimension)
 
-    q.children[i] = node
-    insert(node, c)
-    insert(node, l)
+      q.children[i] = node
+      insert(node, c)
+      insert(node, l)
   }
 }
 
-function nearestArray <T> ( nodes: ILeaf<T>[], dfn: DistanceFn, r: number, p: V2 ): null | ILeaf<T> {
+function nearestArray ( nodes: ILeaf[], dfn: DistanceFn, r: number, p: V2 ): null | ILeaf {
   var found = null
 
   for ( var i = 0, d; i < nodes.length; i++ ) {
@@ -64,7 +68,7 @@ function nearestArray <T> ( nodes: ILeaf<T>[], dfn: DistanceFn, r: number, p: V2
   return found
 }
 
-function minDistToQuad <T> ( q: IQuad<T>, [ x, y ]: V2 ): number {
+function minDistToQuad ( q: IQuad, [ x, y ]: V2 ): number {
   var dx = x - q.position[0]
   var dy = y - q.position[1]
   var halfW = q.dimension[0] / 2
@@ -73,48 +77,50 @@ function minDistToQuad <T> ( q: IQuad<T>, [ x, y ]: V2 ): number {
   return min(abs(dx + halfW), abs(dx - halfW), abs(dy + halfH), abs(dy - halfH))
 }
 
-function nearest <T> ( q: QT<T>, dfn: DistanceFn, r: number, p: V2 ): ILeaf<T> | null {
-  function proximity <T>( q1: QT<T>, q2: QT<T> ): number {
-    if ( q1 == null || q1.leaf ) return 1
-    if ( q2 == null || q2.leaf ) return -1
-   
-    return dfn(q1.position, p) > dfn(q2.position, p) ? 1 : -1
-  }
+function nearest ( qt: QT, dfn: DistanceFn, r: number, p: V2 ): ILeaf | null {
+  var quads = [ qt ]
+  var q: QT
+  var found: ILeaf | null = null
+  var dist
 
-  function search ( w: ILeaf<T> | null, c: QT<T> ): ILeaf<T> | null {
-    if ( c == null ) return w
-    if ( c.leaf ) {
-      if ( w == null ) return c 
-      else             return dfn(c.position, p) < r ? c : w
+  while ( quads.length > 0 ) {
+    q = quads.pop() as QT
+    switch ( q.kind ) {
+      case Kind.Empty:
+        break
+      case Kind.Leaf:
+        dist = dfn(q.position, p)
+        if ( dist < r ) {
+          r = dist
+          found = q
+        }
+        break
+      case Kind.Quad:
+        if ( minDistToQuad(q, p) < r ) {
+          quads.unshift(...q.children) 
+        }
     }
-
-    const md = minDistToQuad(c, p)
-    const wd = w == null ? r : dfn(w.position, p)
-
-    if ( md > wd ) return w
-    
-    const n = nearest(c, dfn, wd, p) 
-
-    if      ( w == null ) return n
-    else if ( n == null ) return w
-    else                  return dfn(n.position, p) < wd ? n : w
   }
-
-  if      ( q == null ) return null
-  else if ( q.leaf )    return dfn(q.position, p) < r ? q : null
-  else                  return q.children
-                                .slice(0)
-                                .sort(proximity)
-                                .reduce(search, null as null | ILeaf<T>) as null | ILeaf<T>
+  return found
 }
 
-const MAX_NODES = pow(2, 14)
+// function proximity ( dfn: DistanceFn, p: V2 ) {
+//   return function  ( q1: IQuad, q2: IQuad ): number {
+//     if ( q1.kind == Kind.Empty || q1.kind == Kind.Empty ) return 1
+//     if ( q2.kind == Kind.Empty || q2.kind == Kind.Empty ) return -1
+//    
+//     return dfn(q1.position, p) > dfn(q2.position, p) ? 1 : -1
+//   }
+// }
+
+const MAX_NODES = pow(2, 6)
 const r = Quad([ 0, 0 ], [ 1, 1 ])
 const target: V2 = [ 0.5, 0.5 ]
 const nodes = []
+const log = (x:any, spaces?: number) => console.log(JSON.stringify(x, null, spaces || 2))
 
 for ( var i = 0, n; i < MAX_NODES; i++ ) {
-  n = Leaf(i, [ Math.random() * 2 - 1, Math.random() * 2 - 1 ])
+  n = Leaf([ Math.random() * 2 - 1, Math.random() * 2 - 1 ])
   nodes.push(n)
   insert(r, n)
 }
@@ -125,4 +131,5 @@ const pdqt = nearest(r, euclidean, Infinity, target)
 if ( pdarray != null && pdqt != null ) {
   console.log(pdarray, euclidean(pdarray.position, target))
   console.log(pdqt, euclidean(pdqt.position, target))
+  // console.log(nodes.map(n => euclidean(n.position, target)))
 }
