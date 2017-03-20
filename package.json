@@ -26,6 +26,8 @@
   "devDependencies": {
     "@types/node": "^7.0.8",
     "seed-random": "^2.2.0",
-    "tape": "^4.6.3"
+    "tape": "^4.6.3",
+    "tsify": "^3.0.1",
+    "typescript": "^2.2.1"
   }
 }
