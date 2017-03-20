@@ -36,7 +36,7 @@ function benchmark <T> ( COUNT: number, f: ( ...args: any[] ) => T, ...args: any
   return { result: r, time: d / COUNT }
 }
 
-var MAX_POINTS = Math.pow(2, 16)
+var MAX_POINTS = Math.pow(2, 8)
 var qt = Quad([ 0, 0 ], [ 2, 2 ]) 
 var points: V2[] = []
 
@@ -74,34 +74,34 @@ test('proximity', t => {
   t.end()
 })
 
-// test('traverse sanity check', t => {
-//   var count = 0
-//   var signs = [ 
-//     [ -1, 1 ],
-//     [ 1, 1 ],
-//     [ 1, -1 ],
-//     [ -1, -1 ]
-//   ]
-// 
-//   function countLeaf ( qt: QT ) {
-//     if ( qt.kind == Kind.Leaf ) count++ 
-//   }
-// 
-//   function dividedProperly ( qt: QT ) {
-//     if ( qt.kind !== Kind.Quad ) return
-//     for ( var i = 0, c: QT; i < qt.children.length; i++ ) {
-//       c = qt.children[i]
-//       if ( c.kind === Kind.Quad ) {
-//         t.same(c.dimension[0], qt.dimension[0] / 2)
-//         t.same(c.dimension[1], qt.dimension[1] / 2)
-//         t.same(c.position[0], qt.position[0] + qt.dimension[0] / 4 * signs[i][0])
-//         t.same(c.position[1], qt.position[1] + qt.dimension[1] / 4 * signs[i][1])
-//       }
-//     } 
-//   }
-// 
-//   traverse(countLeaf, qt)
-//   traverse(dividedProperly, qt)
-//   t.same(count, MAX_POINTS, 'all leaves inserted in tree')
-//   t.end()
-// })
+test('traverse sanity check', t => {
+  var count = 0
+  var signs = [ 
+    [ -1, 1 ],
+    [ 1, 1 ],
+    [ -1, -1 ],
+    [ 1, -1 ]
+  ]
+
+  function countLeaf ( qt: QT ) {
+    if ( qt.kind == Kind.Leaf ) count++ 
+  }
+
+  function dividedProperly ( qt: QT ) {
+    if ( qt.kind !== Kind.Quad ) return
+    for ( var i = 0, c: QT; i < qt.children.length; i++ ) {
+      c = qt.children[i]
+      if ( c.kind === Kind.Quad ) {
+        t.same(c.dimension[0], qt.dimension[0] / 2)
+        t.same(c.dimension[1], qt.dimension[1] / 2)
+        t.same(c.position[0], qt.position[0] + qt.dimension[0] / 4 * signs[i][0])
+        t.same(c.position[1], qt.position[1] + qt.dimension[1] / 4 * signs[i][1])
+      }
+    } 
+  }
+
+  traverse(countLeaf, qt)
+  traverse(dividedProperly, qt)
+  t.same(count, MAX_POINTS, 'all leaves inserted in tree')
+  t.end()
+})
