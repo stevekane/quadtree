@@ -51,15 +51,15 @@ test('helpers', t => {
   var qInner = Quad([ -.5, -.5 ], [ 1, 1 ])
   var qII = Quad([ -.75, -.75  ], [ .5, .5 ])
 
-  t.same(index(qOuter, [ -.5, .5 ]), 0)
-  t.same(index(qOuter, [ .5, .5 ]), 1)
-  t.same(index(qOuter, [ -.5, -.5 ]), 2)
-  t.same(index(qOuter, [ .5, -.5 ]), 3)
+  t.same(index(qOuter, [ -.5, -.5 ]), 0)
+  t.same(index(qOuter, [ .5, -.5 ]), 1)
+  t.same(index(qOuter, [ -.5, .5 ]), 2)
+  t.same(index(qOuter, [ .5, .5 ]), 3)
 
-  t.same(positionForIndex(qOuter, 0), [ -.5, .5 ])
-  t.same(positionForIndex(qOuter, 1), [ .5, .5 ])
-  t.same(positionForIndex(qOuter, 2), [ -.5, -.5 ])
-  t.same(positionForIndex(qOuter, 3), [ .5, -.5 ])
+  t.same(positionForIndex(qOuter, 0), [ -.5, -.5 ])
+  t.same(positionForIndex(qOuter, 1), [ .5, -.5 ])
+  t.same(positionForIndex(qOuter, 2), [ -.5, .5 ])
+  t.same(positionForIndex(qOuter, 3), [ .5, .5 ])
 
   t.same(minDistToQuad(qInner, [ .5, -.5 ]), .5)
   t.same(minDistToQuad(qInner, [ -.2, -.2 ]), 0)
@@ -82,10 +82,10 @@ test('proximity', t => {
 test('traverse sanity check', t => {
   var count = 0
   var signs = [ 
-    [ -1, 1 ],
-    [ 1, 1 ],
     [ -1, -1 ],
-    [ 1, -1 ]
+    [ 1, -1 ],
+    [ -1, 1 ],
+    [ 1, 1 ]
   ]
 
   function countLeaf ( qt: QT ) {
