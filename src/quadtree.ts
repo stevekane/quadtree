@@ -23,8 +23,7 @@ export type QT
   | IQuad
 
 const { sqrt, pow, abs, min, max } = Math
-const clamp = ( l: number, u: number, v: number ) => 
-  min(max(v, l), u)
+
 export const manhattan = ( [ x0, y0 ]: V2, [ x1, y1 ]: V2 ) => 
   abs(x1 - x0) + abs(y1 - y0)
 export const euclidean = ( [ x0, y0 ]: V2, [ x1, y1 ]: V2 ) => 
@@ -72,24 +71,8 @@ export function minDistToQuad ( q: IQuad, [ x, y ]: V2 ): number {
   var dx = x - cx
   var dy = y - cy
 
-  return cx != x || cy != y 
-    ? abs(dx) + abs(dy)
-    : 0
+  return abs(max(dx, 0)) + abs(max(dy, 0))
 }
-
-export function insideQuad ( q: IQuad, [ x, y ]: V2 ): boolean {
-  var halfW = q.dimension[0] / 2
-  var halfH = q.dimension[1] / 2
-  var t = q.position[1] + halfH
-  var r = q.position[0] + halfW
-  var b = q.position[1] - halfH
-  var l = q.position[0] - halfW
-  var inX = x >= l && x < r
-  var inY = y >= b && y < t
-
-  return inX && inY
-}
-
 
 export function insert ( q: IQuad, p: V2 ) {
   var i = index(q, p)
@@ -121,8 +104,6 @@ export function nearest ( qt: QT, dfn: DistanceFn, r: number, p: V2 ): V2 | null
 
   while ( q = quads.pop() as QT ) {
     switch ( q.kind ) {
-      case Kind.Empty:
-        break
       case Kind.Leaf:
         dist = dfn(q.position, p)
         if ( dist < r || found == null ) {
@@ -134,7 +115,7 @@ export function nearest ( qt: QT, dfn: DistanceFn, r: number, p: V2 ): V2 | null
         minDist = minDistToQuad(q, p)
         if ( minDist <= r ) {
           i = index(q, p)
-          for ( var j = 0; j < 4; j += j + 1 == i ? 2 : 1 ) {
+          for ( var j = 0; j < q.children.length; j += j + 1 == i ? 2 : 1 ) {
             quads.push(q.children[j]) 
           }
           quads.push(q.children[i])

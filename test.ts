@@ -4,7 +4,7 @@ import {
   manhattan, euclidean,
   Empty, Leaf, Quad, QT,
   IEmpty, ILeaf, IQuad,
-  index, positionForIndex, minDistToQuad, insideQuad,
+  index, positionForIndex, minDistToQuad,
   insert, nearest, traverse
 } from './src/quadtree'
 
@@ -55,6 +55,11 @@ test('helpers', t => {
   t.same(index(qOuter, [ .5, .5 ]), 1)
   t.same(index(qOuter, [ -.5, -.5 ]), 2)
   t.same(index(qOuter, [ .5, -.5 ]), 3)
+
+  t.same(positionForIndex(qOuter, 0), [ -.5, .5 ])
+  t.same(positionForIndex(qOuter, 1), [ .5, .5 ])
+  t.same(positionForIndex(qOuter, 2), [ -.5, -.5 ])
+  t.same(positionForIndex(qOuter, 3), [ .5, -.5 ])
 
   t.same(minDistToQuad(qInner, [ .5, -.5 ]), .5)
   t.same(minDistToQuad(qInner, [ -.2, -.2 ]), 0)
